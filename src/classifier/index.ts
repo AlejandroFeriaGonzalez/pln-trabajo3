@@ -8,15 +8,12 @@ export interface ClassificationResult {
   normalizedQuery: string;
 }
 
-const CLASSIFICATION_PROMPT = `You are a query classifier. Analyze the user's query and determine if it requires document retrieval (RAG) or can be answered directly.
-
-Respond with ONLY one of these two words:
-- "rag_required" - if the query asks about specific documents, facts, data, or information that would be in a knowledge base
-- "general" - if the query is a general question, greeting, or can be answered without document context
-
-Query: {query}
-
-Classification:`;
+const GENERAL_PATTERNS = [
+  /^(hi|hello|hey|hola|buenos días|buenas tardes)/i,
+  /^(thanks|thank you|gracias)/i,
+  /^(bye|goodbye|adiós|chao)/i,
+  /^(how are you|cómo estás)/i,
+];
 
 export class Classifier {
   private llm: GroqClient;
@@ -28,35 +25,18 @@ export class Classifier {
   async classify(query: string): Promise<ClassificationResult> {
     const normalizedQuery = this.normalizeQuery(query);
     
-    try {
-      const response = await this.llm.complete(
-        CLASSIFICATION_PROMPT.replace('{query}', normalizedQuery)
-      );
-      
-      const intent = this.parseIntent(response.content);
-      
-      return {
-        intent,
-        normalizedQuery,
-      };
-    } catch {
-      // Default to rag_required on error (safer fallback)
-      return {
-        intent: 'rag_required',
-        normalizedQuery,
-      };
-    }
+    // Simple pattern matching for obvious general queries
+    const isGeneral = GENERAL_PATTERNS.some(pattern => pattern.test(normalizedQuery));
+    
+    console.log(`[Classifier] Query: "${normalizedQuery}" -> Intent: ${isGeneral ? 'general' : 'rag_required'}`);
+    
+    return {
+      intent: isGeneral ? 'general' : 'rag_required',
+      normalizedQuery,
+    };
   }
 
   private normalizeQuery(query: string): string {
     return query.trim().replace(/\s+/g, ' ');
-  }
-
-  private parseIntent(response: string): Intent {
-    const lower = response.toLowerCase().trim();
-    if (lower.includes('general')) {
-      return 'general';
-    }
-    return 'rag_required';
   }
 }

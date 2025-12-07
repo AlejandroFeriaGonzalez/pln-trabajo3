@@ -18,9 +18,12 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
+  const apiKey = process.env.GROQ_API_KEY || '';
+  console.log('GROQ_API_KEY loaded:', apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : '(empty)');
+  
   return {
     groq: {
-      apiKey: process.env.GROQ_API_KEY || '',
+      apiKey,
       model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
     },
     faiss: {

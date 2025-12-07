@@ -45,6 +45,7 @@ export class Orchestrator {
 
       // Step 2: Route based on intent
       if (classification.intent === 'general') {
+        console.log('[Orchestrator] Routing to direct response (general intent)');
         const directStart = Date.now();
         const response = await this.handleDirectResponse(query);
         this.addTraceEntry(trace, 'direct_response', Date.now() - directStart);
@@ -59,8 +60,10 @@ export class Orchestrator {
       }
 
       // Step 3: RAG pipeline
+      console.log('[Orchestrator] Routing to RAG pipeline');
       const retrieveStart = Date.now();
       const results = await this.retriever.search(classification.normalizedQuery);
+      console.log(`[Orchestrator] Retrieved ${results.length} chunks`);
       this.addTraceEntry(trace, 'retrieve', Date.now() - retrieveStart);
 
       const generateStart = Date.now();
@@ -68,6 +71,7 @@ export class Orchestrator {
         classification.normalizedQuery,
         results
       );
+      console.log(`[Orchestrator] Generated response with ${ragResponse.sources.length} sources`);
       this.addTraceEntry(trace, 'generate', Date.now() - generateStart);
 
       trace.endTime = new Date().toISOString();
